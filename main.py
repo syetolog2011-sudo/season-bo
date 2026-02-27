@@ -1,12 +1,19 @@
 import telebot
 import os
+import schedule
+import time
+import threading
 from datetime import datetime, timedelta
 
+# Берем токен из секретов Bothost
 TOKEN = os.getenv("BOT_TOKEN")
+# Твой ID (цифрами, без кавычек)
+CHAT_ID = 123456789 
+
 bot = telebot.TeleBot(TOKEN)
 
 def get_countdown():
-    # Добавляем 3 часа к времени сервера, чтобы получить МСК
+    # Получаем время сервера и переводим в МСК (+3 часа)
     now = datetime.utcnow() + timedelta(hours=3)
     year = now.year
     
@@ -19,7 +26,7 @@ def get_countdown():
     
     seasons.sort(key=lambda x: x[1])
     
-    res = "📅 **До начала сезонов осталось (по МСК):**\n\n"
+    res = "⏰ **Ежедневный отчет (МСК):**\n\n"
     for name, d in seasons:
         diff = d - now
         days = diff.days
@@ -29,9 +36,33 @@ def get_countdown():
     
     return res
 
+def send_daily_stats():
+    """Функция для автоматической рассылки"""
+    try:
+        text = get_countdown()
+        bot.send_message(CHAT_ID, text, parse_mode="Markdown")
+        print(f"[{datetime.now()}] Отчет успешно отправлен!")
+    except Exception as e:
+        print(f"Ошибка отправки: {e}")
+
+def run_schedule():
+    """Фоновый цикл для проверки времени"""
+    # 21:01 UTC — это 00:01 по Московскому времени
+    schedule.every().day.at("21:01").do(send_daily_stats)
+    while True:
+        schedule.run_pending()
+        time.sleep(30) # Проверяем каждые 30 секунд
+
 @bot.message_handler(commands=['how'])
 def how(m):
     bot.send_message(m.chat.id, get_countdown(), parse_mode="Markdown")
 
+@bot.message_handler(commands=['start'])
+def start(m):
+    bot.send_message(m.chat.id, "Бот готов! Я буду присылать отчет каждый день в 00:01 по МСК.")
+
 if __name__ == "__main__":
+    # Запускаем расписание в отдельном потоке, чтобы бот не завис
+    threading.Thread(target=run_schedule, daemon=True).start()
+    print("Система запущена. Ожидаем 00:01 МСК для рассылки...")
     bot.infinity_polling()

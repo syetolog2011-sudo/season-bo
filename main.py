@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 # Берем токен из секретов Bothost
 TOKEN = os.getenv("BOT_TOKEN")
 # Твой ID (цифрами, без кавычек)
-CHAT_ID = 123456789 
+CHAT_ID = -2139050997 
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -26,7 +26,7 @@ def get_countdown():
     
     seasons.sort(key=lambda x: x[1])
     
-    res = "⏰ **Ежедневный отчет (МСК):**\n\n"
+    res = "⏰ **Ежедневный отчет:**\n\n"
     for name, d in seasons:
         diff = d - now
         days = diff.days
